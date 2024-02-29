@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "cypress": "^13.5.1",
+    "cypress-file-upload": "^5.0.8",
+    "cypress-iframe": "^1.0.1"
+  },
+  "scripts": {
+    "cypress:open": "cypress open"
+  },
+  "dependencies": {
+    "mathjs": "^12.0.0"
+  }
+}
