@@ -8,7 +8,6 @@ Cypress.on('uncaught:exception', (err, runnable) => {
   return false
 })
 
-
 for (let i = 0; i < 1; i++) {
   // dependiendo de cuantas veces queremos iterar se podra generar automaticamente el proceso y solo necesita cambiar los textos para que automaticamente los datos se modifiquen
   describe(`Ciclo de pruebas - Iteración ${i + 10}`, () => {
@@ -24,72 +23,73 @@ for (let i = 0; i < 1; i++) {
       cy.get('[type="password"]').type(jsonGet('pass', { delay: 50 })).wait(1000)
       // 4. hacer click submit
       cy.get('[type="submit"]').click()
-      for (let ciclo = 1; ciclo <= 10; ciclo++) {
+      for (let ciclo = 1; ciclo <= 12; ciclo++) {
+      
 
-        // Autocompletado de Primera Parte del texto segun cantidad de tipo y cantidad
-        // 5. capturamos el texto completo
-        cy.get('.p-4 > .text-center').invoke('text').then((TextoParteUno) => {
-          //  capturamos todo el texto
-          const match = TextoParteUno.match(/(\d+)/);
-          cy.log("el texto es el siguiente:", TextoParteUno);
-          // capturamos el numero desde el texto
-          const numero = parseInt(match[0], 10);
-          // imprimir
-          cy.log(`Número: ${numero}`);
-          // capturamos la letra dentro de ""
-          const match2 = TextoParteUno.match(/"([^"]+)"/);
-          const letra = match2[1];
-          // imprimir
-          cy.log(`Letra: ${letra}`);
-          // por medio de variables numero = cantidad y letra  se generara el siguiente type
-          cy.get('.p-4 > .border-2').then(($input) => {
-            const texto = letra.repeat(numero);
-            cy.wrap($input).type(texto);
+        cy.wait(2500);
+        let VarRaiz;
+        let VarBotones;
+
+        cy.get('form button').its('length').then(totalDeBotones => {
+          // 'totalDeBotones' ahora contiene la cantidad de botones
+          VarBotones = totalDeBotones;
+          cy.log(`Total de botones: ${VarBotones}`);
+
+          // Calcular la raíz cuadrada
+          VarRaiz = Math.sqrt(VarBotones);
+          cy.log(`Raíz cuadrada del total de botones: ${VarRaiz}`);
+        
+
+        cy.get('.bg-white.rounded-md.p-3.shadow-md.w-1\\/2.space-y-4').as('miElemento');
+        cy.get('@miElemento').should('exist').should('be.visible').wait(2000);
+        cy.get('@miElemento').then((divElement) => {
+          const coordenadasText = divElement.find('.text-xl.font-bold').text();
+          const coordenadas = coordenadasText.match(/\((-?\d+),(-?\d+)\)/g).map(coordenada => {
+            const [x, y] = coordenada.match(/-?\d+/g);
+            return { x: parseInt(x), y: parseInt(y) };
           });
-        });
-        // Selector automatico segun texto numerico en select
-        cy.get('.space-y-4 > .font-bold').invoke('text').then((operacionMatematica) => {
-          const resultado = math.evaluate(operacionMatematica);
-          const resultado1 = resultado.entries[0].toString().replace(/\[|\]/g, '');
-          cy.get('select[name="select"]').select(resultado1.toString());
-        });
-        // Selector automatico segun texto numerico en select
-        cy.get(':nth-child(3) > .font-bold').invoke('text').then((operacionMatematica1) => {
-          const operacionMatematica2 = operacionMatematica1.replace('=?', '');
-          const resultado2 = math.evaluate(operacionMatematica2);
-          cy.log('ResultadoRescatado', resultado2);
-          cy.get('label').contains(resultado2).click();
-        });
-        // extraer numero del texto que indica al cual deben pertenecer esos multiplos
-        cy.get(':nth-child(4) > .text-center').invoke('text').then((ObtenerTexto) => {
-          // cy.log('Texto es:', ObtenerTexto);
-          const numero = parseInt(ObtenerTexto.match(/\d+/)[0], 10);
-          // cy.log('el numero es:', numero);
 
-          // generar multiplos 
-          const cantidadDeMultiplos = 99;
-          const multiplosDeNumeroBase = [];
+          const resultadoFinal = coordenadas.reduce((resultado, coordenada) => {
+            resultado.x += coordenada.x;
+            resultado.y += coordenada.y;
+            return resultado;
+          }, { x: 0, y: 0 });
 
-          for (let i = 1; i <= cantidadDeMultiplos; i++) {
-            const multiplo = numero * i;
-            multiplosDeNumeroBase.push(multiplo);
+          if (resultadoFinal) {
+            const yCoord = resultadoFinal.y;
+            const xCoord = resultadoFinal.x;
+            const indiceBoton = yCoord * VarRaiz + xCoord;
+
+            sumarColumna(xCoord, () => {
+              cy.get('form button').eq(indiceBoton).click();
+            });
+          } else {
+            cy.log('Las coordenadas no son válidas.');
           }
-          //  iteramos checkboxes
-          cy.get('input[name="checkbox"]').each(($checkbox) => {
-          // extraigo valor numerico
-          const valorCheckbox = parseInt($checkbox.val(), 10);
-          // Verificar si el valor esta en mi arreglo multiplosDeNumeroBase donde almaceno mis multiplos en base al texto
-          if (multiplosDeNumeroBase.includes(valorCheckbox)) {
-          cy.wrap($checkbox).check();
-      }
-    });
-          cy.get(':nth-child(2) > .border-black').click()
         });
-        // corto el load en caso de reload
-        cy.reload(false);
-      }
+
+        function sumarColumna(columna, callback) {
+          let suma = 0;
+
+          cy.wrap([...Array(VarRaiz).keys()]).each((_, fila) => {
+            const indice = fila * VarRaiz + columna;
+            cy.get('form button').eq(indice).invoke('text').then((textoBoton) => {
+              const valorBoton = parseInt(textoBoton.trim());
+              cy.log(`Valor del botón en fila ${fila + 1}: ${valorBoton}`);
+              suma += valorBoton;
+            });
+          }).then(() => {
+            cy.log(`La suma de la columna ${columna} es: ${suma}`).wait(2500);
+            callback();
+            cy.get('input.rounded-md').type(suma).wait(2500);
+          });
+
+          cy.get('.space-y-10 > .mx-auto').click().wait(2500);
+          cy.reload(false);
+          }
+        });}
+      });
     });
-  });
 }
 
 // Desarrollado por Jose Ramirez Cerda 17/11/2023 con fines academicos
